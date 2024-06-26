@@ -35,6 +35,8 @@ jobs:
         run: make test_coverage
 
       - uses: codecov/codecov-action@v4 # Docs: <https://github.com/codecov/codecov-action>
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           file: ./coverage-ci/summary.txt
           fail_ci_if_error: false
