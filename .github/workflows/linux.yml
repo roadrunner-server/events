@@ -20,14 +20,14 @@ on:
 
 jobs:
   golang:
-    name: Build (Go ${{ matrix.go }}, PHP ${{ matrix.php }}, OS ${{matrix.os}})
+    name: Build (Go ${{ matrix.go }}, OS ${{matrix.os}})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         go: [stable]
-        os: ["ubuntu-latest"]
+        os: ["ubuntu-latest", "macos-latest"]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
