@@ -1,6 +1,7 @@
 package events
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -215,4 +216,50 @@ func TestEvenHandler10(t *testing.T) {
 	require.Equal(t, "EventHTTPError", evt.Type().String())
 
 	eh.Unsubscribe(id)
+}
+
+func TestEvenHandlerConcurrent(t *testing.T) {
+	eh, id := NewEventBus()
+	ch := make(chan Event, 100)
+	eh2, id2 := NewEventBus()
+	ch2 := make(chan Event, 100)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		err := eh.SubscribeP(id, "http.EventWorkerError", ch)
+		require.NoError(t, err)
+
+		for e := range ch {
+			t.Log(e)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := eh2.SubscribeP(id2, "http.EventWorkerError", ch2)
+		require.NoError(t, err)
+
+		for e2 := range ch2 {
+			t.Log(e2)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 1000; i++ {
+			eh.Send(NewEvent(EventWorkerError, "http", "foo"))
+			eh2.Send(NewEvent(EventWorkerError, "http", "foo"))
+		}
+	}()
+
+	time.Sleep(time.Second)
+
+	eh.Unsubscribe(id)
+	eh2.Unsubscribe(id2)
+	close(ch)
+	close(ch2)
+	wg.Wait()
 }

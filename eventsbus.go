@@ -30,14 +30,15 @@ type sub struct {
 }
 
 type Bus struct {
-	sync.RWMutex
-	subscribers  sync.Map
+	mu           sync.RWMutex
+	subscribers  map[string][]*sub
 	internalEvCh chan Event
 	stop         chan struct{}
 }
 
 func newEventsBus() *Bus {
 	return &Bus{
+		subscribers:  make(map[string][]*sub, 10),
 		internalEvCh: make(chan Event, 100),
 		stop:         make(chan struct{}),
 	}
@@ -80,24 +81,27 @@ func (eb *Bus) SubscribeP(subID string, pattern string, ch chan<- Event) error {
 }
 
 func (eb *Bus) Unsubscribe(subID string) {
-	eb.subscribers.Delete(subID)
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
+	delete(eb.subscribers, subID)
 }
 
 func (eb *Bus) UnsubscribeP(subID, pattern string) {
-	if sb, ok := eb.subscribers.Load(subID); ok {
-		eb.Lock()
-		defer eb.Unlock()
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
 
-		sbArr := sb.([]*sub)
+	if _, ok := eb.subscribers[subID]; !ok {
+		return
+	}
 
-		for i := 0; i < len(sbArr); i++ {
-			if sbArr[i].pattern == pattern {
-				sbArr[i] = sbArr[len(sbArr)-1]
-				sbArr = sbArr[:len(sbArr)-1]
-				// replace with new array
-				eb.subscribers.Store(subID, sbArr)
-				return
-			}
+	sbArr := eb.subscribers[subID]
+
+	for i := 0; i < len(sbArr); i++ {
+		if sbArr[i].pattern == pattern {
+			sbArr[i] = sbArr[len(sbArr)-1]
+			sbArr = sbArr[:len(sbArr)-1]
+			// replace with new array
+			eb.subscribers[subID] = sbArr
 		}
 	}
 }
@@ -113,34 +117,29 @@ func (eb *Bus) Send(ev Event) {
 }
 
 func (eb *Bus) Len() uint {
-	var ln uint
-
-	eb.subscribers.Range(func(key, value any) bool {
-		ln++
-		return true
-	})
-
-	return ln
+	eb.mu.RLock()
+	defer eb.mu.RUnlock()
+	return uint(len(eb.subscribers))
 }
 
 func (eb *Bus) subscribe(subID string, pattern string, ch chan<- Event) error {
-	eb.Lock()
-	defer eb.Unlock()
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
+
 	w, err := newWildcard(pattern)
 	if err != nil {
 		return err
 	}
 
-	if sb, ok := eb.subscribers.Load(subID); ok {
+	if subArr, ok := eb.subscribers[subID]; ok {
 		// at this point we are confident that sb is a []*sub type
-		subArr := sb.([]*sub)
 		subArr = append(subArr, &sub{
 			pattern: pattern,
 			w:       w,
 			events:  ch,
 		})
 
-		eb.subscribers.Store(subID, subArr)
+		eb.subscribers[subID] = subArr
 
 		return nil
 	}
@@ -152,7 +151,7 @@ func (eb *Bus) subscribe(subID string, pattern string, ch chan<- Event) error {
 		events:  ch,
 	})
 
-	eb.subscribers.Store(subID, subArr)
+	eb.subscribers[subID] = subArr
 
 	return nil
 }
@@ -162,21 +161,19 @@ func (eb *Bus) handleEvents() {
 		// http.WorkerError for example
 		wc := fmt.Sprintf("%s.%s", ev.Plugin(), ev.Type().String())
 
-		eb.subscribers.Range(func(key, value any) bool {
-			vsub := value.([]*sub)
+		eb.mu.RLock()
 
+		for _, vsub := range eb.subscribers {
 			for i := 0; i < len(vsub); i++ {
 				if vsub[i].w.match(wc) {
 					select {
 					case vsub[i].events <- ev:
-						return true
 					default:
-						return true
 					}
 				}
 			}
+		}
 
-			return true
-		})
+		eb.mu.RUnlock()
 	}
 }
