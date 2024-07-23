@@ -1,6 +1,8 @@
 module github.com/roadrunner-server/events
 
-go 1.22.5
+go 1.22
+
+toolchain go1.22.5
 
 require (
 	github.com/google/uuid v1.6.0
