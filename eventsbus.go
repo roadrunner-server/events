@@ -96,7 +96,7 @@ func (eb *Bus) UnsubscribeP(subID, pattern string) {
 
 	sbArr := eb.subscribers[subID]
 
-	for i := 0; i < len(sbArr); i++ {
+	for i := range sbArr {
 		if sbArr[i].pattern == pattern {
 			sbArr[i] = sbArr[len(sbArr)-1]
 			sbArr = sbArr[:len(sbArr)-1]
@@ -164,7 +164,7 @@ func (eb *Bus) handleEvents() {
 		eb.mu.RLock()
 
 		for _, vsub := range eb.subscribers {
-			for i := 0; i < len(vsub); i++ {
+			for i := range vsub {
 				if vsub[i].w.match(wc) {
 					select {
 					case vsub[i].events <- ev:

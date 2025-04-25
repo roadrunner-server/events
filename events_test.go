@@ -249,7 +249,7 @@ func TestEvenHandlerConcurrent(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		for i := 0; i < 1000; i++ {
+		for range 1000 {
 			eh.Send(NewEvent(EventWorkerError, "http", "foo"))
 			eh2.Send(NewEvent(EventWorkerError, "http", "foo"))
 		}
