@@ -14,14 +14,14 @@ type wildcard struct {
 func newWildcard(pattern string) (*wildcard, error) {
 	// Normalize
 	origin := strings.ToLower(pattern)
-	i := strings.IndexByte(origin, '*')
+	before, after, ok := strings.Cut(origin, "*")
 
 	/*
 		http.*
 		*
 		*.WorkerError
 	*/
-	if i == -1 {
+	if !ok {
 		dotI := strings.IndexByte(pattern, '.')
 
 		if dotI == -1 {
@@ -34,7 +34,7 @@ func newWildcard(pattern string) (*wildcard, error) {
 
 	// pref: http.
 	// suff: *
-	return &wildcard{origin[0:i], origin[i+1:]}, nil
+	return &wildcard{before, after}, nil
 }
 
 func (w wildcard) match(s string) bool {
