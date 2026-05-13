@@ -2,11 +2,11 @@ module github.com/roadrunner-server/events
 
 go 1.26
 
-toolchain go1.26.0
+toolchain go1.26.3
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/roadrunner-server/errors v1.4.1
+	github.com/roadrunner-server/errors v1.5.0
 	github.com/stretchr/testify v1.11.1
 )
 
