@@ -8,3 +8,22 @@
 </p>
 
 # RoadRunner events bus
+
+## Queued subscriptions
+
+Use `SubscribePQueued` to retain matching events while a subscriber is busy:
+
+```go
+bus, id := events.NewEventBus()
+commands := make(chan events.Event)
+if err := bus.SubscribePQueued(id, "*.EventJOBSDriverCommand", commands); err != nil {
+    return err
+}
+defer bus.Unsubscribe(id)
+```
+
+Each queued subscription delivers events in bus order. Its queue grows in memory with the number of pending events. Delivery to other subscribers continues while its receiver is busy.
+
+`Unsubscribe` and `UnsubscribeP` discard events that remain in the subscription queue and wait for its delivery goroutine to stop. Close the receiver channel after unsubscribe returns. The queue exists for the lifetime of the subscription in the current process.
+
+`SubscribeP` and `SubscribeAll` use non-blocking delivery. They can drop events when a receiver channel is full.
