@@ -17,6 +17,12 @@ type EventBus interface {
 	Send(ev Event)
 }
 
+// QueuedEventBus adds queued subscriptions to the event bus API.
+type QueuedEventBus interface {
+	EventBus
+	SubscribePQueued(subID string, pattern string, ch chan<- Event) error
+}
+
 type Event interface {
 	Type() fmt.Stringer
 	Plugin() string

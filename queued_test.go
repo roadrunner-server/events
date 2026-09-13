@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newQueuedTestBus(t *testing.T) *Bus {
+func newQueuedTestBus(t *testing.T) QueuedEventBus {
 	t.Helper()
 	bus := newEventsBus()
 	done := make(chan struct{})

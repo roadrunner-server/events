@@ -24,6 +24,8 @@ defer bus.Unsubscribe(id)
 
 Each queued subscription delivers events in bus order. Its queue grows in memory with the number of pending events. Delivery to other subscribers continues while its receiver is busy.
 
+Use `QueuedEventBus` for parameters and fields that require queued delivery.
+
 `Unsubscribe` and `UnsubscribeP` discard events that remain in the subscription queue and wait for its delivery goroutine to stop. Close the receiver channel after unsubscribe returns. The queue exists for the lifetime of the subscription in the current process.
 
 `SubscribeP` and `SubscribeAll` use non-blocking delivery. They can drop events when a receiver channel is full.
